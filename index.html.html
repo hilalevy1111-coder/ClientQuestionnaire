@@ -30,6 +30,8 @@ label.q,.q{display:block;font-weight:600;margin-bottom:4px}
 input[type=text],input[type=email],input[type=tel],input[type=date],textarea,select{
   width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:12px;background:var(--bg);color:var(--text);font:inherit}
 textarea{min-height:84px;resize:vertical}
+input[dir=ltr]{text-align:right}
+input[dir=ltr]::placeholder{text-align:right}
 .opt{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:12px;margin:6px 0;cursor:pointer}
 .opt input{width:20px;height:20px;accent-color:var(--accent);flex:none;margin:0}
 .opt:has(input:checked){border-color:var(--accent);background:var(--soft)}
@@ -37,7 +39,7 @@ textarea{min-height:84px;resize:vertical}
 .other.show{display:block}
 .err{color:var(--err);font-size:14px;margin-top:4px;display:none}
 .field.bad .err{display:block}
-.field.bad input[type=text],.field.bad textarea{border-color:var(--err)}
+.field.bad input,.field.bad textarea{border-color:var(--err)}
 button.btn{border:0;border-radius:14px;padding:13px 20px;font:inherit;font-weight:700;background:var(--accent);color:#fff;cursor:pointer}
 button.btn.sec{background:transparent;color:var(--text);border:1px solid var(--border);font-weight:500}
 button.btn.ok{background:var(--ok)}
@@ -47,8 +49,6 @@ pre{white-space:pre-wrap;background:var(--soft);border-radius:12px;padding:12px;
 .note{font-size:13px;color:var(--muted);margin-top:10px}
 #result{display:none}
 </style>
-
-<meta name="NetsparkQuiltingResult" total-length="18147" removed="0" rules-found="w37511,w21492,w3494,w2711,w3075,w3443,w37762,w24345,w366,w37922,w17069,w21862,w38656,w18521,w16968,w37110,w37111,w37184,w37185,w22907,w24942,w38094,w38095,r2803s52p6,w17204,w38672,w24622,w37923,w3288,w38874,w25255,w20800,w39061,w37825,w37235,w21829,w25310,w38099,w21011,w38838,w4426,w24683,w16789,w3015,w4880,w37582,w37583,w2633,w3498,w6926,r1448s-30p1" />
 </head>
 <body>
 <div class="wrap">
@@ -71,7 +71,7 @@ const CONFIG = {
   designerName: "",         // השם שלך, יופיע בהודעה
   whatsapp: "",             // מספר בפורמט בינלאומי בלי + ובלי 0 בהתחלה, למשל 972501234567
   email: "",                // המייל שלך לקבלת התשובות
-  formspree: "",            // אופציונלי: כתובת Formspree, למשל https://formspree.io/f/xxxxxxx
+  formspree: "https://formspree.io/f/xbgdlroj", // כתובת ה-Formspree שלך
   projectLabel: "שאלון אתר" // כותרת להודעה שתגיע אלייך
 };
 
@@ -81,8 +81,8 @@ const SECTIONS = [
     {id:"name", type:"text", label:"איך קוראים לך?", required:true},
     {id:"biz", type:"text", label:"שם העסק (אם יש)"},
     {id:"what", type:"textarea", label:"במשפט או שניים: מה אתם עושים?", required:true},
-    {id:"email", type:"email", label:"כתובת המייל שלך", required:true, hint:"המייל ישמש אותנו כדי לחזור אליכם"},
-    {id:"phone", type:"tel", label:"מספר טלפון", hint:"אופציונלי"}
+    {id:"email", type:"email", label:"כתובת מייל", required:true, hint:"לשם נחזור אליכם"},
+    {id:"phone", type:"tel", label:"טלפון", hint:"אופציונלי, אם נוח לכם גם בשיחה או בוואטסאפ"}
   ]},
   { title:"2. המטרה של האתר", fields:[
     {id:"goals", type:"checks", label:"למה אתם צריכים אתר או דף אינטרנט?", hint:"אפשר לבחור כמה", required:true, other:true,
@@ -141,10 +141,10 @@ SECTIONS.forEach(sec=>{
     const lab=h("div",{class:"q"},[f.label+" ", f.required?h("span",{class:"req",text:"*"}):""]);
     wrap.appendChild(lab);
     if(f.hint) wrap.appendChild(h("p",{class:"hint",text:f.hint}));
-    if(f.type==="text"||f.type==="email"||f.type==="tel"||f.type==="date"){
+    if(f.type==="text"||f.type==="date"||f.type==="email"||f.type==="tel"){
       const attrs={type:f.type,id:f.id,name:f.id,"aria-label":f.label};
-      if(f.type==="email") attrs.autocomplete="email";
-      if(f.type==="tel") attrs.autocomplete="tel";
+      if(f.type==="email"){ attrs.dir="ltr"; attrs.autocomplete="email"; attrs.inputmode="email"; }
+      if(f.type==="tel"){ attrs.dir="ltr"; attrs.autocomplete="tel"; attrs.inputmode="tel"; }
       wrap.appendChild(h("input",attrs));
     } else if(f.type==="textarea"){
       wrap.appendChild(h("textarea",{id:f.id,name:f.id,"aria-label":f.label}));
@@ -160,7 +160,7 @@ SECTIONS.forEach(sec=>{
         wrap.appendChild(h("input",{type:"text",class:"other",id:f.id+"_other","aria-label":"פירוט (אחר)",placeholder:"פרטי כאן..."}));
       }
     }
-    wrap.appendChild(h("div",{class:"err",text:f.required?"שדה חובה":""}));
+    wrap.appendChild(h("div",{class:"err",text:"שדה חובה"}));
     card.appendChild(wrap);
   });
   form.appendChild(card);
@@ -173,7 +173,7 @@ form.appendChild(submitRow);
 /* ============ התנהגות ============ */
 function fieldDef(id){ for(const s of SECTIONS) for(const f of s.fields) if(f.id===id) return f; }
 function readValue(f){
-  if(f.type==="text"||f.type==="email"||f.type==="tel"||f.type==="date"||f.type==="textarea") return (document.getElementById(f.id).value||"").trim();
+  if(["text","date","email","tel","textarea"].includes(f.type)) return (document.getElementById(f.id).value||"").trim();
   const sel=[...form.querySelectorAll('input[name="'+f.id+'"]:checked')].map(i=>i.value);
   const out=[];
   sel.forEach(v=>{
@@ -219,17 +219,30 @@ function buildSummary(){
   return lines.join("\n").trim();
 }
 
+function buildPayload(){
+  /* כל שאלה נשלחת כשדה נפרד. המפתח "email" משמש את Formspree ככתובת להשבה (Reply-To) */
+  const payload={};
+  const name=readValue(fieldDef("name"));
+  payload._subject=CONFIG.projectLabel+(name?" – "+name:"");
+  SECTIONS.forEach(sec=>sec.fields.forEach(f=>{
+    const v=readValue(f);
+    if(!v) return;
+    if(f.id==="email") payload.email=v;
+    else payload[f.label.replace(/\s+$/,"")]=v;
+  }));
+  return payload;
+}
+
 function validate(){
   let ok=true, first=null;
   SECTIONS.forEach(s=>s.fields.forEach(f=>{
     const wrap=form.querySelector('[data-f="'+f.id+'"]');
-    const value=readValue(f);
-    const invalidEmail=f.type==="email" && value && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value);
-    const bad=(f.required && !value) || invalidEmail;
+    const val=readValue(f);
+    let bad=f.required && !val, msg="שדה חובה";
+    if(!bad && f.type==="email" && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)){ bad=true; msg="כתובת המייל לא נראית תקינה"; }
+    if(!bad && f.type==="tel" && val && !/^[0-9+\-()\s]{7,20}$/.test(val)){ bad=true; msg="מספר הטלפון לא נראה תקין"; }
+    wrap.querySelector(".err").textContent=msg;
     wrap.classList.toggle("bad",bad);
-    wrap.querySelectorAll("input, textarea, select").forEach(el=>el.setAttribute("aria-invalid",bad?"true":"false"));
-    const err=wrap.querySelector(".err");
-    if(err) err.textContent=invalidEmail ? "נא להזין כתובת מייל תקינה" : (f.required ? "שדה חובה" : "");
     if(bad){ ok=false; if(!first) first=wrap; }
   }));
   if(first) first.scrollIntoView({behavior:"smooth",block:"center"});
@@ -241,9 +254,16 @@ function showResult(summary, sentAuto){
   document.getElementById("summary").textContent=summary;
   const actions=document.getElementById("actions"); actions.innerHTML="";
   const who=CONFIG.designerName?(" ל"+CONFIG.designerName):"";
-  document.getElementById("resText").textContent = sentAuto
-    ? "הפרטים נקלטו בהצלחה! תודה רבה על הזמן שהקדשתם לשאלון. אנחנו נעבור על התשובות וניצור איתכם קשר בקרוב. 🙏"
-    : "התשובות מוכנות. כדי שיגיעו"+who+", לחצו על אחת האפשרויות למטה.";
+  const pre=document.getElementById("summary");
+  if(sentAuto){
+    document.getElementById("resTitle").textContent="תודה רבה! 🙏";
+    document.getElementById("resText").textContent="הפרטים נקלטו בהצלחה! תודה רבה על הזמן שהקדשתם לשאלון. אנחנו נעבור על התשובות וניצור איתכם קשר בקרוב. 🙏";
+    pre.style.display="none";
+  } else {
+    document.getElementById("resTitle").textContent="כמעט סיימנו";
+    document.getElementById("resText").textContent="התשובות מוכנות. כדי שיגיעו אלינו, לחצו על אחת האפשרויות למטה, ונחזור אליכם בקרוב. תודה! 🙏";
+    pre.style.display="block";
+  }
   if(!sentAuto){
     if(CONFIG.whatsapp){
       actions.appendChild(h("button",{type:"button",class:"btn ok",text:"שליחה בוואטסאפ"}));
@@ -254,6 +274,7 @@ function showResult(summary, sentAuto){
       actions.lastChild.onclick=()=>{ location.href="mailto:"+encodeURIComponent(CONFIG.email)+"?subject="+encodeURIComponent(CONFIG.projectLabel)+"&body="+encodeURIComponent(summary); };
     }
   }
+  if(sentAuto){ document.getElementById("resNote").textContent="התשובות משמשות רק לצורך בניית האתר שלכם."; form.style.display="none"; res.style.display="block"; res.scrollIntoView({behavior:"smooth"}); return; }
   const copy=h("button",{type:"button",class:"btn sec",text:"העתקת התשובות"});
   copy.onclick=async()=>{
     try{ await navigator.clipboard.writeText(summary); copy.textContent="הועתק ✓"; }
@@ -272,7 +293,7 @@ form.addEventListener("submit", async e=>{
   if(CONFIG.formspree){
     try{
       const r=await fetch(CONFIG.formspree,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},
-        body:JSON.stringify({subject:CONFIG.projectLabel,message:summary})});
+        body:JSON.stringify(buildPayload())});
       if(r.ok){ showResult(summary,true); return; }
     }catch(err){}
   }
@@ -280,6 +301,5 @@ form.addEventListener("submit", async e=>{
 });
 updateProgress();
 </script>
-
 </body>
 </html>
