@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>שאלון היכרות לאתר חדש</title>
+<style>
+:root{
+  --bg:#f6f5fb; --card:#fff; --text:#1d1b2e; --muted:#6b6880; --border:#dcd8ec;
+  --accent:#6d5efc; --ok:#16a34a; --err:#d93a3a; --soft:#efedfb;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#14131d;--card:#1e1d2b;--text:#efedf8;--muted:#a09db5;--border:#3a3852;--accent:#8f84ff;--soft:#262538;--err:#ff6b6b}
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;overflow-x:hidden;background:var(--bg);color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI","Heebo",Arial,sans-serif;line-height:1.6;font-size:16px}
+.wrap{max-width:680px;margin:0 auto;padding:18px 14px 60px}
+h1{font-size:24px;margin:8px 0 4px}
+.intro{color:var(--muted);margin:0 0 16px}
+.progress{position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:3}
+.bar{height:8px;background:var(--soft);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px;margin:14px 0}
+.card h2{margin:0 0 10px;font-size:18px}
+.field{margin:16px 0}
+label.q,.q{display:block;font-weight:600;margin-bottom:4px}
+.hint{color:var(--muted);font-size:14px;margin:0 0 6px}
+.req{color:var(--err)}
+input[type=text],input[type=email],input[type=tel],input[type=date],textarea,select{
+  width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:12px;background:var(--bg);color:var(--text);font:inherit}
+textarea{min-height:84px;resize:vertical}
+.opt{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:12px;margin:6px 0;cursor:pointer}
+.opt input{width:20px;height:20px;accent-color:var(--accent);flex:none;margin:0}
+.opt:has(input:checked){border-color:var(--accent);background:var(--soft)}
+.other{margin-top:6px;display:none}
+.other.show{display:block}
+.err{color:var(--err);font-size:14px;margin-top:4px;display:none}
+.field.bad .err{display:block}
+.field.bad input[type=text],.field.bad textarea{border-color:var(--err)}
+button.btn{border:0;border-radius:14px;padding:13px 20px;font:inherit;font-weight:700;background:var(--accent);color:#fff;cursor:pointer}
+button.btn.sec{background:transparent;color:var(--text);border:1px solid var(--border);font-weight:500}
+button.btn.ok{background:var(--ok)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.hp{position:absolute;top:0;inset-inline-start:0;width:1px;height:1px;opacity:0;overflow:hidden;clip-path:inset(50%);pointer-events:none}
+pre{white-space:pre-wrap;background:var(--soft);border-radius:12px;padding:12px;font:inherit;font-size:14px;max-height:320px;overflow:auto}
+.note{font-size:13px;color:var(--muted);margin-top:10px}
+#result{display:none}
+</style>
+
+<meta name="NetsparkQuiltingResult" total-length="18147" removed="0" rules-found="w37511,w21492,w3494,w2711,w3075,w3443,w37762,w24345,w366,w37922,w17069,w21862,w38656,w18521,w16968,w37110,w37111,w37184,w37185,w22907,w24942,w38094,w38095,r2803s52p6,w17204,w38672,w24622,w37923,w3288,w38874,w25255,w20800,w39061,w37825,w37235,w21829,w25310,w38099,w21011,w38838,w4426,w24683,w16789,w3015,w4880,w37582,w37583,w2633,w3498,w6926,r1448s-30p1" />
+</head>
+<body>
+<div class="wrap">
+  <h1 id="title">שאלון היכרות לאתר חדש</h1>
+  <p class="intro" id="intro">כמה שאלות קצרות כדי להבין מה אתם צריכים ולמה. אין תשובות נכונות או שגויות, ואפשר לדלג על כל מה שלא ברור. זה לוקח כ-5 דקות.</p>
+  <div class="progress"><div class="bar"><i id="bar"></i></div></div>
+  <form id="form" novalidate></form>
+  <div class="card" id="result">
+    <h2 id="resTitle">תודה! 🙏</h2>
+    <p id="resText" class="intro"></p>
+    <pre id="summary"></pre>
+    <div class="row" id="actions"></div>
+    <p class="note" id="resNote"></p>
+  </div>
+</div>
+
+<script>
+/* ============ הגדרות (לעריכה) ============ */
+const CONFIG = {
+  designerName: "",         // השם שלך, יופיע בהודעה
+  whatsapp: "",             // מספר בפורמט בינלאומי בלי + ובלי 0 בהתחלה, למשל 972501234567
+  email: "",                // המייל שלך לקבלת התשובות
+  formspree: "",            // אופציונלי: כתובת Formspree, למשל https://formspree.io/f/xxxxxxx
+  projectLabel: "שאלון אתר" // כותרת להודעה שתגיע אלייך
+};
+
+/* ============ השאלון ============ */
+const SECTIONS = [
+  { title:"1. קצת על העסק", fields:[
+    {id:"name", type:"text", label:"איך קוראים לך?", required:true},
+    {id:"biz", type:"text", label:"שם העסק (אם יש)"},
+    {id:"what", type:"textarea", label:"במשפט או שניים: מה אתם עושים?", required:true},
+    {id:"email", type:"email", label:"כתובת המייל שלך", required:true, hint:"המייל ישמש אותנו כדי לחזור אליכם"},
+    {id:"phone", type:"tel", label:"מספר טלפון", hint:"אופציונלי"}
+  ]},
+  { title:"2. המטרה של האתר", fields:[
+    {id:"goals", type:"checks", label:"למה אתם צריכים אתר או דף אינטרנט?", hint:"אפשר לבחור כמה", required:true, other:true,
+      options:["להציג את העבודות שלי","לקבל פניות מלקוחות חדשים","לקבוע תורים או פגישות","למכור מוצרים או שירותים","לתת מידע (מחירים, שעות, כתובת)","להיראות מקצועי ואמין","אני עדיין לא בטוח/ה"]},
+    {id:"mainAction", type:"radio", label:"מה הדבר האחד שהכי חשוב שמבקר באתר יעשה?", required:true, other:true,
+      options:["יתקשר אליי","ישלח הודעה בוואטסאפ","ימלא טופס יצירת קשר","יקבע תור","ירכוש משהו","יסתכל על העבודות ויתרשם"]},
+    {id:"success", type:"textarea", label:"איך תדעו שהאתר הצליח בעוד 3 חודשים?", hint:"למשל: יותר פניות, פחות שאלות חוזרות, לקוחות שמגיעים מגוגל"},
+    {id:"audience", type:"textarea", label:"מי הלקוחות שלכם? למי האתר מיועד?"}
+  ]},
+  { title:"3. המצב היום", fields:[
+    {id:"hasSite", type:"radio", label:"יש לכם כבר אתר?", options:["לא, זה יהיה הראשון","כן, ורוצים לשדרג או להחליף"]},
+    {id:"channels", type:"checks", label:"איפה אתם נמצאים ואיך לקוחות מגיעים אליכם?", other:true,
+      options:["רשתות חברתיות","המלצות מפה לאוזן","גוגל","וואטסאפ"]},
+    {id:"links", type:"textarea", label:"קישורים לרשתות או לעמודים קיימים", hint:"אופציונלי"}
+  ]},
+  { title:"4. תוכן ותמונות", fields:[
+    {id:"pages", type:"checks", label:"אילו חלקים תרצו באתר?", other:true,
+      options:["דף בית","גלריית עבודות","אודות","שירותים ומחירים","יצירת קשר","המלצות מלקוחות","שאלות נפוצות","בלוג או חדשות"]},
+    {id:"assets", type:"radio", label:"מה כבר מוכן אצלכם?", options:["יש לי תמונות, לוגו וטקסטים","יש תמונות אבל אין טקסטים","יש רק חלק מהחומרים","אין עדיין כלום"]},
+    {id:"lang", type:"radio", label:"באיזו שפה יהיה האתר?", options:["עברית","אנגלית","שתיהן"]}
+  ]},
+  { title:"5. קביעת תורים והזמנות", fields:[
+    {id:"bookNow", type:"radio", label:"איך לקוחות קובעים אצלכם היום?", other:true,
+      options:["בוואטסאפ","בטלפון","בהודעה באינסטגרם","דרך אפליקציית תורים","עדיין לא קובעים"]},
+    {id:"bookWant", type:"radio", label:"מה הייתם רוצים באתר?", options:["קביעת תור מלאה באתר","רק כפתור לשליחת הודעה בוואטסאפ או יצירת קשר","לא בטוח/ה, אשמח להמלצה"]}
+  ]},
+  { title:"6. מראה ותחושה", fields:[
+    {id:"vibe", type:"checks", label:"איזו תחושה האתר צריך להעביר?", hint:"אפשר לבחור עד 3", max:3, other:true,
+      options:["נקי ומינימליסטי","צבעוני ושמח","יוקרתי","חם ואישי","מקצועי ורציני","צעיר ומודרני"]},
+    {id:"colors", type:"text", label:"צבעים אהובים או כאלה שרוצים להימנע מהם"},
+    {id:"examples", type:"textarea", label:"אתרים שאהבתם", hint:"קישור אחד עד שלושה, ולמה אהבתם"}
+  ]},
+  { title:"7. פרקטי", fields:[
+    {id:"deadline", type:"date", label:"עד מתי תרצו שהאתר יהיה מוכן? (אם יש תאריך)"},
+    {id:"domain", type:"radio", label:"יש לכם כתובת אתר (דומיין)?", options:["כן","לא","לא יודע/ת מה זה"]},
+    {id:"extra", type:"textarea", label:"משהו נוסף שחשוב לי לדעת?"}
+  ]}
+];
+
+/* ============ בניית הטופס ============ */
+const form = document.getElementById("form");
+function h(tag, attrs, kids){
+  const el=document.createElement(tag);
+  for(const k in (attrs||{})){
+    if(k==="class") el.className=attrs[k];
+    else if(k==="text") el.textContent=attrs[k];
+    else el.setAttribute(k,attrs[k]);
+  }
+  (kids||[]).forEach(c=>el.appendChild(typeof c==="string"?document.createTextNode(c):c));
+  return el;
+}
+SECTIONS.forEach(sec=>{
+  const card=h("div",{class:"card"},[h("h2",{text:sec.title})]);
+  sec.fields.forEach(f=>{
+    const wrap=h("div",{class:"field","data-f":f.id});
+    const lab=h("div",{class:"q"},[f.label+" ", f.required?h("span",{class:"req",text:"*"}):""]);
+    wrap.appendChild(lab);
+    if(f.hint) wrap.appendChild(h("p",{class:"hint",text:f.hint}));
+    if(f.type==="text"||f.type==="email"||f.type==="tel"||f.type==="date"){
+      const attrs={type:f.type,id:f.id,name:f.id,"aria-label":f.label};
+      if(f.type==="email") attrs.autocomplete="email";
+      if(f.type==="tel") attrs.autocomplete="tel";
+      wrap.appendChild(h("input",attrs));
+    } else if(f.type==="textarea"){
+      wrap.appendChild(h("textarea",{id:f.id,name:f.id,"aria-label":f.label}));
+    } else {
+      const inType=f.type==="radio"?"radio":"checkbox";
+      const opts=f.options.slice();
+      if(f.other) opts.push("אחר");
+      opts.forEach(o=>{
+        const inp=h("input",{type:inType,name:f.id,value:o});
+        wrap.appendChild(h("label",{class:"opt"},[inp,h("span",{text:o})]));
+      });
+      if(f.other){
+        wrap.appendChild(h("input",{type:"text",class:"other",id:f.id+"_other","aria-label":"פירוט (אחר)",placeholder:"פרטי כאן..."}));
+      }
+    }
+    wrap.appendChild(h("div",{class:"err",text:f.required?"שדה חובה":""}));
+    card.appendChild(wrap);
+  });
+  form.appendChild(card);
+});
+/* honeypot נגד ספאם */
+form.appendChild(h("input",{type:"text",name:"_gotcha",class:"hp",tabindex:"-1",autocomplete:"off","aria-hidden":"true"}));
+const submitRow=h("div",{class:"row"},[h("button",{type:"submit",class:"btn",text:"סיום ושליחה"})]);
+form.appendChild(submitRow);
+
+/* ============ התנהגות ============ */
+function fieldDef(id){ for(const s of SECTIONS) for(const f of s.fields) if(f.id===id) return f; }
+function readValue(f){
+  if(f.type==="text"||f.type==="email"||f.type==="tel"||f.type==="date"||f.type==="textarea") return (document.getElementById(f.id).value||"").trim();
+  const sel=[...form.querySelectorAll('input[name="'+f.id+'"]:checked')].map(i=>i.value);
+  const out=[];
+  sel.forEach(v=>{
+    if(v==="אחר"){
+      const t=(document.getElementById(f.id+"_other").value||"").trim();
+      out.push(t?("אחר: "+t):"אחר");
+    } else out.push(v);
+  });
+  return out.join(", ");
+}
+function updateProgress(){
+  let total=0, done=0;
+  SECTIONS.forEach(s=>s.fields.forEach(f=>{ total++; if(readValue(f)) done++; }));
+  document.getElementById("bar").style.width=Math.round(done/total*100)+"%";
+}
+form.addEventListener("input",updateProgress);
+form.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.type==="radio"||t.type==="checkbox"){
+    const f=fieldDef(t.name);
+    if(f && f.max && t.type==="checkbox"){
+      const checked=form.querySelectorAll('input[name="'+f.id+'"]:checked');
+      if(checked.length>f.max){ t.checked=false; return; }
+    }
+    if(f && f.other){
+      const other=form.querySelector('input[name="'+f.id+'"][value="אחר"]');
+      document.getElementById(f.id+"_other").classList.toggle("show", other.checked);
+    }
+  }
+  updateProgress();
+});
+
+function buildSummary(){
+  const lines=[];
+  const d=new Date();
+  lines.push("📋 "+CONFIG.projectLabel+" – "+d.toLocaleDateString("he-IL"));
+  lines.push("");
+  SECTIONS.forEach(sec=>{
+    const part=[];
+    sec.fields.forEach(f=>{ const v=readValue(f); if(v) part.push("• "+f.label.replace(/\s+$/,"")+": "+v); });
+    if(part.length){ lines.push(sec.title); lines.push(...part); lines.push(""); }
+  });
+  return lines.join("\n").trim();
+}
+
+function validate(){
+  let ok=true, first=null;
+  SECTIONS.forEach(s=>s.fields.forEach(f=>{
+    const wrap=form.querySelector('[data-f="'+f.id+'"]');
+    const value=readValue(f);
+    const invalidEmail=f.type==="email" && value && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value);
+    const bad=(f.required && !value) || invalidEmail;
+    wrap.classList.toggle("bad",bad);
+    wrap.querySelectorAll("input, textarea, select").forEach(el=>el.setAttribute("aria-invalid",bad?"true":"false"));
+    const err=wrap.querySelector(".err");
+    if(err) err.textContent=invalidEmail ? "נא להזין כתובת מייל תקינה" : (f.required ? "שדה חובה" : "");
+    if(bad){ ok=false; if(!first) first=wrap; }
+  }));
+  if(first) first.scrollIntoView({behavior:"smooth",block:"center"});
+  return ok;
+}
+
+function showResult(summary, sentAuto){
+  const res=document.getElementById("result");
+  document.getElementById("summary").textContent=summary;
+  const actions=document.getElementById("actions"); actions.innerHTML="";
+  const who=CONFIG.designerName?(" ל"+CONFIG.designerName):"";
+  document.getElementById("resText").textContent = sentAuto
+    ? "הפרטים נקלטו בהצלחה! תודה רבה על הזמן שהקדשתם לשאלון. אנחנו נעבור על התשובות וניצור איתכם קשר בקרוב. 🙏"
+    : "התשובות מוכנות. כדי שיגיעו"+who+", לחצו על אחת האפשרויות למטה.";
+  if(!sentAuto){
+    if(CONFIG.whatsapp){
+      actions.appendChild(h("button",{type:"button",class:"btn ok",text:"שליחה בוואטסאפ"}));
+      actions.lastChild.onclick=()=>{ window.open("https://wa.me/"+encodeURIComponent(CONFIG.whatsapp)+"?text="+encodeURIComponent(summary),"_blank","noopener"); };
+    }
+    if(CONFIG.email){
+      actions.appendChild(h("button",{type:"button",class:"btn",text:"שליחה במייל"}));
+      actions.lastChild.onclick=()=>{ location.href="mailto:"+encodeURIComponent(CONFIG.email)+"?subject="+encodeURIComponent(CONFIG.projectLabel)+"&body="+encodeURIComponent(summary); };
+    }
+  }
+  const copy=h("button",{type:"button",class:"btn sec",text:"העתקת התשובות"});
+  copy.onclick=async()=>{
+    try{ await navigator.clipboard.writeText(summary); copy.textContent="הועתק ✓"; }
+    catch(e){ const r=document.createRange(); r.selectNodeContents(document.getElementById("summary")); const s=getSelection(); s.removeAllRanges(); s.addRange(r); copy.textContent="סומן, אפשר להעתיק"; }
+  };
+  actions.appendChild(copy);
+  document.getElementById("resNote").textContent="התשובות משמשות רק לצורך בניית האתר שלכם.";
+  form.style.display="none"; res.style.display="block"; res.scrollIntoView({behavior:"smooth"});
+}
+
+form.addEventListener("submit", async e=>{
+  e.preventDefault();
+  if(!validate()) return;
+  if(form.querySelector('[name="_gotcha"]').value) return; /* בוט */
+  const summary=buildSummary();
+  if(CONFIG.formspree){
+    try{
+      const r=await fetch(CONFIG.formspree,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},
+        body:JSON.stringify({subject:CONFIG.projectLabel,message:summary})});
+      if(r.ok){ showResult(summary,true); return; }
+    }catch(err){}
+  }
+  showResult(summary,false);
+});
+updateProgress();
+</script>
+
+</body>
+</html>
